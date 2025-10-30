@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -5,26 +6,38 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-import os
 import json
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from io import BytesIO
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///restaurant.db'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+def create_app():
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///restaurant.db')
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_size': 10,
+        'max_overflow': 20,
+    }
+    app.config['UPLOAD_FOLDER'] = 'static/uploads'
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+    # Initialize extensions
+    db = SQLAlchemy()
+    db.init_app(app)
+    
+    migrate = Migrate()
+    migrate.init_app(app, db)
+    
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
+    
+    return app, db, migrate, login_manager
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+# Create the application
+app, db, migrate, login_manager = create_app()
 
 @dataclass
 class OrderTotals:
@@ -1035,14 +1048,12 @@ def check_expired_discounts():
             app.logger.error(f"Error checking expired discounts: {str(e)}")
             db.session.rollback()
 
-# Check for expired discounts when the app starts
-check_expired_discounts()
-
-# Schedule periodic check for expired discounts (every hour)
-from apscheduler.schedulers.background import BackgroundScheduler
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=check_expired_discounts, trigger='interval', hours=1)
-scheduler.start()
+def schedule_jobs():
+    from apscheduler.schedulers.background import BackgroundScheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(check_expired_discounts, 'interval', hours=1)
+    scheduler.start()
+    return scheduler
 
 def create_tables():
     """Create database tables if they don't exist and ensure admin user exists."""
