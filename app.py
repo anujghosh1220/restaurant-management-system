@@ -946,35 +946,10 @@ def create_admin():
         db.session.close()
 
 def init_admin():
-    with app.app_context():
-        db.create_all()
-        admin = User.query.filter_by(username='admin').first()
-        
-        if admin:
-            # Update existing admin if email is missing or password needs update
-            if not admin.email:
-                admin.email = 'admin@example.com'
-                print("✅ Added email to existing admin user")
-            if check_password_hash(admin.password, 'admin123'):
-                # Password is already hashed and correct, no action needed
-                pass
-            else:
-                # Update password if it's not the default
-                admin.password = generate_password_hash('admin123', method='scrypt')
-            db.session.commit()
-            print(f"✅ Admin user exists with email: {admin.email}")
-        else:
-            # Create new admin user
-            hashed_password = generate_password_hash('admin123', method='scrypt')
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                password=hashed_password, 
-                is_admin=True
-            )
-            db.session.add(admin)
-            db.session.commit()
-            print("✅ Created default admin user with email: admin@example.com")
+    """Legacy function - now handled by create_tables()"""
+    print("Admin initialization is now handled by create_tables()")
+    # The actual admin creation is now handled in create_tables()
+    # This function is kept for backward compatibility
 
 @app.route('/order-confirmation')
 @login_required
@@ -1070,24 +1045,50 @@ scheduler.add_job(func=check_expired_discounts, trigger='interval', hours=1)
 scheduler.start()
 
 def create_tables():
-    """Create database tables if they don't exist."""
+    """Create database tables if they don't exist and ensure admin user exists."""
     with app.app_context():
         try:
             # This will create all tables that don't exist
             db.create_all()
             print("Database tables created successfully")
+            
+            # Check if admin user exists, if not create one
+            admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+            admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
+            admin_email = os.getenv('ADMIN_EMAIL', 'admin@example.com')
+            
+            admin_user = User.query.filter_by(username=admin_username).first()
+            if not admin_user:
+                hashed_password = generate_password_hash(admin_password, method='pbkdf2:sha256')
+                admin = User(
+                    username=admin_username,
+                    email=admin_email,
+                    password=hashed_password,
+                    is_admin=True
+                )
+                db.session.add(admin)
+                db.session.commit()
+                print(f"Admin user '{admin_username}' created with password '{admin_password}'")
+            
+            # Initialize default settings if they don't exist
+            if not Settings.query.first():
+                default_settings = Settings(
+                    gst_percentage=18.0,
+                    discount_percentage=0.0
+                )
+                db.session.add(default_settings)
+                db.session.commit()
+                print("Default settings created")
+                
         except Exception as e:
-            print(f"Error creating database tables: {str(e)}")
+            print(f"Error during database initialization: {str(e)}")
+            db.session.rollback()
             # If there's an error, try to continue anyway
-            pass
 
 # Create tables when the app starts
 create_tables()
 
 if __name__ == '__main__':
-    # Initialize admin user
-    with app.app_context():
-        init_admin()
-    
-    # Run the app
+    # The app is already initialized with create_tables()
+    # which handles both table creation and admin user setup
     app.run(debug=True)
