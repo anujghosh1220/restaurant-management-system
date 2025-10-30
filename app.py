@@ -1069,6 +1069,25 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(func=check_expired_discounts, trigger='interval', hours=1)
 scheduler.start()
 
+def create_tables():
+    """Create database tables if they don't exist."""
+    with app.app_context():
+        try:
+            # This will create all tables that don't exist
+            db.create_all()
+            print("Database tables created successfully")
+        except Exception as e:
+            print(f"Error creating database tables: {str(e)}")
+            # If there's an error, try to continue anyway
+            pass
+
+# Create tables when the app starts
+create_tables()
+
 if __name__ == '__main__':
-    init_admin()
+    # Initialize admin user
+    with app.app_context():
+        init_admin()
+    
+    # Run the app
     app.run(debug=True)
