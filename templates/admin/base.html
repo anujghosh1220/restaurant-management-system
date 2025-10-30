@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}{% block admin_title %}{% endblock %} - Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #e67e22;
+        --primary-hover: #d35400;
+        --sidebar-bg: #2c3e50;
+        --sidebar-text: #ecf0f1;
+        --sidebar-hover: #34495e;
+        --sidebar-active: #e67e22;
+        --content-bg: #f8f9fa;
+        --card-bg: #ffffff;
+        --border-color: #e0e0e0;
+    }
+    
+    body {
+        background-color: var(--content-bg);
+    }
+    
+    /* Sidebar Styling */
+    .sidebar {
+        position: fixed;
+        top: 56px; /* Height of the navbar */
+        bottom: 0;
+        left: 0;
+        z-index: 1020; /* Below navbar */
+        padding: 20px 0 0;
+        background-color: var(--sidebar-bg);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        color: var(--sidebar-text);
+        width: 250px; /* Fixed width */
+        overflow-y: auto; /* Enable scrolling if content is too long */
+    }
+    
+    .sidebar .nav-link {
+        font-weight: 500;
+        color: var(--sidebar-text);
+        padding: 0.8rem 1.5rem;
+        margin: 0.2rem 1rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+    
+    .sidebar .nav-link:hover {
+        background-color: var(--sidebar-hover);
+        color: white;
+        transform: translateX(5px);
+    }
+    
+    .sidebar .nav-link.active {
+        background-color: var(--sidebar-active);
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3);
+    }
+    
+    .sidebar .nav-link i {
+        width: 24px;
+        text-align: center;
+        margin-right: 10px;
+        font-size: 1.1rem;
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem 1.5rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 1rem;
+    }
+    
+    .sidebar-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+    }
+    
+    .sidebar-header h3 i {
+        margin-right: 10px;
+        color: var(--primary-color);
+    }
+    
+    /* Main Content */
+    main {
+        margin-left: 250px;
+        padding: 30px;
+        min-height: calc(100vh - 56px); /* Account for fixed navbar */
+        background-color: var(--content-bg);
+        transition: all 0.3s;
+        margin-top: 56px; /* Height of the navbar */
+    }
+    
+    /* Adjust for mobile view */
+    @media (max-width: 767.98px) {
+        .sidebar {
+            margin-left: -250px;
+        }
+        .sidebar.active {
+            margin-left: 0;
+        }
+        main {
+            margin-left: 0;
+        }
+        .sidebar.active + main {
+            margin-left: 0;
+        }
+    }
+    
+    /* Cards */
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: var(--card-bg);
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        padding: 15px 20px;
+        border-radius: 10px 10px 0 0 !important;
+    }
+    
+    /* Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    /* Tables */
+    .table {
+        background-color: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid var(--border-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        padding: 15px;
+    }
+    
+    .table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+        border-color: var(--border-color);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(230, 126, 34, 0.05);
+    }
+    
+    /* Forms */
+    .form-control, .form-select {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px 15px;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(230, 126, 34, 0.25);
+    }
+    
+    /* Responsive */
+    @media (max-width: 991.98px) {
+        .sidebar {
+            margin-left: -250px;
+        }
+        
+        .sidebar.active {
+            margin-left: 0;
+        }
+        
+        main {
+            margin-left: 0;
+        }
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-utensils"></i> Admin Panel</h3>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" 
+                           href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'new_item' %}active{% endif %}" 
+                           href="{{ url_for('new_item') }}">
+                            <i class="fas fa-plus-circle"></i>
+                            Add New Item
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'admin_orders' %}active{% endif %}" 
+                           href="{{ url_for('admin_orders') }}">
+                            <i class="fas fa-shopping-cart"></i>
+                            Orders
+                        </a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a class="nav-link" href="{{ url_for('index') }}" target="_blank">
+                            <i class="fas fa-external-link-alt"></i>
+                            View Site
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4">
+                <h1 class="h3 mb-0">{% block admin_heading %}{% endblock %}</h1>
+                {% block admin_actions %}{% endblock %}
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block admin_content %}{% endblock %}
+            
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle sidebar on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Toggle sidebar on mobile
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('active');
+                document.querySelector('main').classList.toggle('active');
+            });
+        }
+    });
+</script>
+{% endblock %}

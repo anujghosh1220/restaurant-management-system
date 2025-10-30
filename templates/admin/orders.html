@@ -1,0 +1,286 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}Orders{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Orders</h1>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.user.username }}</td>
+                <td>{{ order.user.email }}</td>
+                <td>
+                    <ul class="list-unstyled mb-0">
+                        {% for item in order.items %}
+                        <li>{{ item.quantity }}x {{ item.menu_item_name }} - ₹{{ "%.2f"|format(item.price * item.quantity) }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>₹{{ "%.2f"|format(order.total_amount) }}</td>
+                <td>
+                    <span class="badge {% if order.status == 'pending' %}bg-warning{% elif order.status == 'paid' %}bg-info{% else %}bg-success{% endif %}">
+                        {{ order.status|title }}
+                    </span>
+                </td>
+                <td>{{ order.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        {% if order.status == 'pending' %}
+                        <button class="btn btn-success mark-paid" data-order-id="{{ order.id }}" title="Mark as Paid">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        {% elif order.status == 'paid' %}
+                        <button class="btn btn-primary mark-completed" data-order-id="{{ order.id }}" title="Mark as Completed">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        {% endif %}
+                        <a href="{{ url_for('view_invoice', order_id=order.id) }}" class="btn btn-info" target="_blank" title="View Invoice">
+                            <i class="fas fa-file-invoice"></i>
+                        </a>
+                        <button class="btn btn-danger delete-order" data-order-id="{{ order.id }}" title="Delete Order">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center">No orders found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle mark as paid
+    document.querySelectorAll('.mark-paid').forEach(button => {
+        button.addEventListener('click', function() {
+            updateOrderStatus(this, 'mark_paid');
+        });
+    });
+    
+    // Handle mark as completed
+    document.querySelectorAll('.mark-completed').forEach(button => {
+        button.addEventListener('click', function() {
+            updateOrderStatus(this, 'mark_completed');
+        });
+    });
+    
+    // Handle delete order
+    document.querySelectorAll('.delete-order').forEach(button => {
+        button.addEventListener('click', function() {
+            deleteOrder(this);
+        });
+    });
+    
+    function updateOrderStatus(button, action) {
+        if (!button) {
+            console.error('Button element not found');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to mark this order as ${action === 'mark_paid' ? 'paid' : 'completed'}?`)) {
+            return;
+        }
+        
+        const orderId = button.dataset.orderId;
+        const row = button.closest('tr');
+        
+        if (!row) {
+            console.error('Row element not found');
+            return;
+        }
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+        
+        fetch('/admin/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                action: action
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                
+                // Update the status badge
+                const statusBadge = row.querySelector('.badge');
+                if (statusBadge) {
+                    if (action === 'mark_paid') {
+                        statusBadge.className = 'badge bg-info';
+                        statusBadge.textContent = 'Paid';
+                    } else if (action === 'mark_completed') {
+                        statusBadge.className = 'badge bg-success';
+                        statusBadge.textContent = 'Completed';
+                    }
+                }
+                
+                // Update the button group
+                const buttonGroup = button.closest('.btn-group');
+                if (buttonGroup) {
+                    if (action === 'mark_paid') {
+                        buttonGroup.innerHTML = `
+                            <button class="btn btn-primary mark-completed" data-order-id="${orderId}" title="Mark as Completed">
+                                <i class="fas fa-check-double"></i>
+                            </button>
+                            <a href="/invoice/${orderId}" class="btn btn-info" target="_blank" title="View Invoice">
+                                <i class="fas fa-file-invoice"></i>
+                            </a>
+                        `;
+                        
+                        // Add event listener to the new button
+                        const newButton = buttonGroup.querySelector('.mark-completed');
+                        if (newButton) {
+                            newButton.addEventListener('click', function() {
+                                updateOrderStatus(this, 'mark_completed');
+                            });
+                        }
+                    } else if (action === 'mark_completed') {
+                        buttonGroup.innerHTML = `
+                            <a href="/invoice/${orderId}" class="btn btn-info" target="_blank" title="View Invoice">
+                                <i class="fas fa-file-invoice"></i>
+                            </a>
+                        `;
+                    }
+                }
+                
+                // Show success message with link to invoice if marked as paid
+                if (action === 'mark_paid') {
+                    showAlert('success', 
+                        `Order marked as paid. ` +
+                        `<a href="/invoice/${orderId}" class="alert-link" target="_blank">View Invoice</a>`
+                    );
+                } else {
+                    showAlert('success', data.message);
+                }
+            } else {
+                throw new Error(data.message || 'Failed to update order status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', error.message || 'An error occurred while updating the order status');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    function deleteOrder(button) {
+        const orderId = button.dataset.orderId;
+        const row = button.closest('tr');
+        
+        if (!row) {
+            console.error('Row element not found');
+            return;
+        }
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+        
+        fetch('/admin/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                action: 'delete'
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the table
+                row.remove();
+                showAlert('success', data.message);
+                
+                // Check if there are no more rows in the table
+                const tbody = document.querySelector('tbody');
+                if (tbody && tbody.children.length === 0) {
+                    // Add a message if the table is empty
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = '<td colspan="8" class="text-center">No orders found.</td>';
+                    tbody.appendChild(emptyRow);
+                }
+            } else {
+                throw new Error(data.message || 'Failed to delete order');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', error.message || 'An error occurred while deleting the order');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    function showAlert(type, message) {
+        // Remove any existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.container');;
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

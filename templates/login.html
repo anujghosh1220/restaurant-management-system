@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Restaurant Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 100vh;
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+    
+    .auth-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .auth-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .auth-header {
+        background: #e67e22;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .auth-header h2 {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .form-control {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #e67e22;
+        box-shadow: 0 0 0 0.25rem rgba(230, 126, 34, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-auth {
+        background: #e67e22;
+        border: none;
+        padding: 12px 25px;
+        font-weight: 600;
+        border-radius: 50px;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-auth:hover {
+        background: #d35400;
+        transform: translateY(-2px);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #7f8c8d;
+    }
+    
+    .auth-footer a {
+        color: #e67e22;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .auth-footer a:hover {
+        color: #d35400;
+        text-decoration: underline;
+    }
+    
+    .back-home {
+        display: inline-block;
+        margin-top: 1rem;
+        color: #7f8c8d;
+    }
+    
+    .back-home:hover {
+        color: #e67e22;
+    }
+    
+    .form-check-input:checked {
+        background-color: #e67e22;
+        border-color: #e67e22;
+    }
+    
+    .admin-note {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-top: 20px;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h2>Welcome Back</h2>
+                        <p class="mb-0">Sign in to continue to your account</p>
+                    </div>
+                    
+                    <div class="auth-body">
+                        <form method="POST" action="{{ url_for('login') }}">
+                            <div class="mb-4">
+                                <label for="email" class="form-label">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control" 
+                                           id="email" name="email" required
+                                           placeholder="your@email.com">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <input type="password" class="form-control" 
+                                           id="password" name="password" required
+                                           placeholder="••••••••">
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                                    <label class="form-check-label" for="remember">
+                                        Remember me
+                                    </label>
+                                </div>
+                                <a href="#" class="text-decoration-none" style="color: #e67e22;">Forgot password?</a>
+                            </div>
+                            
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-auth">
+                                    <i class="fas fa-sign-in-alt me-2"></i> Log In
+                                </button>
+                            </div>
+                            
+                            <div class="auth-footer">
+                                <p class="mb-2">
+                                    Don't have an account? 
+                                    <a href="{{ url_for('signup') }}">Sign up here</a>
+                                </p>
+                                <a href="{{ url_for('index') }}" class="back-home">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to Home
+                                </a>
+                            </div>
+                        </form>
+                        
+                        <div class="admin-note text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>Admin Access:</strong> admin@example.com
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

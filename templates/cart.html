@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - Restaurant Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Your Shopping Cart</h1>
+            
+            <div id="empty-cart-message" class="alert alert-info" style="display: none;">
+                Your cart is empty. <a href="{{ url_for('index') }}">Browse our menu</a> to add items.
+            </div>
+            <div id="cart-content" style="display: none;">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-items">
+                            <!-- Cart items will be dynamically inserted here -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                <td colspan="2" class="text-end"><strong id="cart-subtotal">₹0.00</strong></td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end">GST (<span id="gst-percentage">0</span>%):</td>
+                                <td colspan="2" class="text-end" id="gst-amount">₹0.00</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end">Discount (<span id="discount-percentage">0</span>%):</td>
+                                <td colspan="2" class="text-end text-danger" id="discount-amount">-₹0.00</td>
+                            </tr>
+                            <tr class="table-active">
+                                <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                                <td colspan="2" class="text-end"><strong id="cart-total">₹0.00</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                    </a>
+                    <a href="{{ url_for('payment_options') }}" class="btn btn-primary" id="checkout-btn">
+                        Proceed to Checkout <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Format currency
+function formatCurrency(amount) {
+    return `₹${amount.toFixed(2)}`;
+}
+
+// Helper function to safely update amount displays
+function updateAmount(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = formatCurrency(Math.abs(value));
+}
+
+// Function to update cart display
+async function updateCartDisplay() {
+    const cartItems = document.getElementById('cart-items');
+    const emptyCartMessage = document.getElementById('empty-cart-message');
+    const cartContent = document.getElementById('cart-content');
+    
+    if (!cartItems || !emptyCartMessage || !cartContent) {
+        console.error('Required cart elements not found');
+        return;
+    }
+    
+    // Clear existing items
+    cartItems.innerHTML = '';
+    
+    try {
+        // Initialize subtotal
+        let subtotal = 0;
+        
+        // Fetch cart data from the backend
+        const cartResponse = await fetch('/api/cart');
+        if (!cartResponse.ok) {
+            throw new Error('Failed to fetch cart data');
+        }
+        
+        const cart = await cartResponse.json();
+        
+        // Update sessionStorage with the latest cart data
+        sessionStorage.setItem('cart', JSON.stringify(cart));
+        
+        if (cart.length === 0) {
+            emptyCartMessage.style.display = 'block';
+            cartContent.style.display = 'none';
+            return;
+        }
+        
+        // Show cart content
+        emptyCartMessage.style.display = 'none';
+        cartContent.style.display = 'block';
+        
+        // Add each item to the cart
+        cart.forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            subtotal += itemTotal;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${formatCurrency(item.price)}</td>
+                <td>
+                    <div class="input-group" style="min-width: 140px; max-width: 160px;">
+                        <button class="btn btn-outline-secondary update-quantity px-3" data-item-id="${item.id}" data-action="decrease">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" class="form-control text-center px-1 quantity-input" 
+                               value="${item.quantity}" min="1" data-item-id="${item.id}"
+                               style="min-width: 50px;">
+                        <button class="btn btn-outline-secondary update-quantity px-3" data-item-id="${item.id}" data-action="increase">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </td>
+                <td class="item-total">${formatCurrency(itemTotal)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm remove-item" data-item-id="${item.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            cartItems.appendChild(row);
+        });
+
+        // Now fetch settings
+        console.log('Fetching settings from /api/settings');
+        const settingsResponse = await fetch('/api/settings');
+        console.log('Response status:', settingsResponse.status);
+        
+        if (!settingsResponse.ok) {
+            throw new Error(`Failed to load settings: ${settingsResponse.status} ${settingsResponse.statusText}`);
+        }
+        
+        const settings = await settingsResponse.json();
+        console.log('Loaded settings:', settings);
+        
+        // Convert percentages to numbers with defaults
+        const gstPercentage = parseFloat(settings.gst_percentage) || 0;
+        const discountPercentage = parseFloat(settings.discount_percentage) || 0;
+        
+        // Safely update percentage displays
+        const gstPercentageEl = document.getElementById('gst-percentage');
+        const discountPercentageEl = document.getElementById('discount-percentage');
+        
+        if (gstPercentageEl) gstPercentageEl.textContent = gstPercentage.toFixed(2);
+        if (discountPercentageEl) discountPercentageEl.textContent = discountPercentage.toFixed(2);
+        
+        // Calculate amounts (GST after discount)
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        const netPrice = subtotal - discountAmount;
+        const gstAmount = (netPrice * gstPercentage) / 100;
+        const total = Math.max(0, netPrice + gstAmount);
+        
+        console.log('Calculated amounts:', { 
+            subtotal, 
+            gstPercentage, 
+            discountPercentage,
+            gstAmount, 
+            discountAmount, 
+            total 
+        });
+        
+        // Update amount displays
+        updateAmount('cart-subtotal', subtotal);
+        updateAmount('gst-amount', gstAmount);
+        updateAmount('discount-amount', -discountAmount);
+        updateAmount('cart-total', total);
+        
+    } catch (error) {
+        console.error('Error in updateCartDisplay:', error);
+        
+        // Show error to user
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            Could not load cart data. Please refresh the page.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        const container = document.querySelector('.container.my-5');
+        if (container) {
+            container.prepend(alertDiv);
+        }
+    } finally {
+        // Always reattach event listeners
+        attachCartEventListeners();
+    }
+}
+
+// Function to attach event listeners to cart elements
+function attachCartEventListeners() {
+    // Update quantity buttons
+    document.querySelectorAll('.update-quantity').forEach(button => {
+        button.addEventListener('click', async function() {
+            const itemId = this.dataset.itemId;
+            const action = this.dataset.action;
+            const input = this.parentElement.querySelector('.quantity-input');
+            let quantity = parseInt(input.value);
+            
+            // Store current quantity for comparison
+            this.dataset.quantity = quantity;
+            
+            // Update quantity based on action
+            if (action === 'increase') {
+                quantity += 1;
+            } else if (action === 'decrease') {
+                quantity = Math.max(1, quantity - 1); // Prevent quantity from going below 1
+            }
+            
+            // Only update if quantity actually changed
+            if (quantity !== parseInt(input.value)) {
+                await updateCartItem.call(this, itemId, quantity);
+            }
+        });
+    });
+    
+    // Handle direct input changes
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', async function() {
+            const itemId = this.dataset.itemId;
+            let quantity = parseInt(this.value) || 1;
+            
+            // Ensure quantity is at least 1
+            if (quantity < 1) {
+                quantity = 1;
+                this.value = 1;
+            }
+            
+            await updateCartItem.call(this, itemId, quantity);
+        });
+    });
+    
+    // Remove item buttons
+    document.querySelectorAll('.remove-item').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            if (confirm('Are you sure you want to remove this item from your cart?')) {
+                // Pass the remove button itself to handle the loading state
+                updateCartItem(itemId, 0, this);
+            }
+        });
+    });
+}
+
+// Function to update a cart item's quantity
+async function updateCartItem(itemId, quantity, button = null) {
+    if (!itemId) {
+        console.error('Menu item ID is required');
+        return;
+    }
+
+    // If no button is provided, find the first matching button or input
+    if (!button) {
+        button = document.querySelector(`.update-quantity[data-item-id="${itemId}"]`) || 
+                document.querySelector(`.quantity-input[data-item-id="${itemId}"]`) ||
+                document.querySelector(`.remove-item[data-item-id="${itemId}"]`);
+    }
+    
+    // Find the input and row elements
+    const input = button?.closest('.input-group')?.querySelector('.quantity-input') || 
+                 document.querySelector(`.quantity-input[data-item-id="${itemId}"]`);
+    const row = button?.closest('tr') || document.querySelector(`tr[data-item-id="${itemId}"]`);
+    
+    // Store current state for potential rollback
+    const prevQuantity = input ? parseInt(input.value) || 0 : 0;
+    const prevTotal = row ? parseFloat(row.querySelector('.item-total')?.textContent?.replace(/[^0-9.-]+/g,"") || '0') : 0;
+    const prevSubtotal = parseFloat(document.getElementById('cart-subtotal')?.textContent?.replace(/[^0-9.-]+/g,"") || '0');
+    
+    // Update UI immediately for better responsiveness
+    if (input) input.value = quantity;
+    
+    // Calculate new item total
+    const price = prevQuantity > 0 ? prevTotal / prevQuantity : 0;
+    const newItemTotal = price * quantity;
+    
+    if (row) {
+        const itemTotalEl = row.querySelector('.item-total');
+        if (itemTotalEl) itemTotalEl.textContent = formatCurrency(newItemTotal);
+    }
+    
+    // Update subtotal
+    const newSubtotal = prevSubtotal - (prevQuantity * price) + (quantity * price);
+    updateAmount('cart-subtotal', newSubtotal);
+    
+    // Recalculate taxes and total with the new subtotal
+    const gstPercentage = parseFloat(document.getElementById('gst-percentage')?.textContent || '0');
+    const discountPercentage = parseFloat(document.getElementById('discount-percentage')?.textContent || '0');
+    
+    const gstAmount = (newSubtotal * gstPercentage) / 100;
+    const discountAmount = (newSubtotal * discountPercentage) / 100;
+    const total = Math.max(0, newSubtotal + gstAmount - discountAmount);
+    
+    updateAmount('gst-amount', gstAmount);
+    updateAmount('discount-amount', -discountAmount);
+    updateAmount('cart-total', total);
+    
+    // Show loading state
+    if (button) {
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        if (button.classList.contains('remove-item')) {
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        } else {
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        }
+    }
+
+    try {
+        // Update the backend
+        const response = await fetch('/api/cart/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                menu_item_id: itemId,
+                quantity: quantity
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to update cart');
+        }
+
+        const data = await response.json();
+
+        // Update the cart count in the navbar
+        updateCartCount();
+
+        // If quantity is 0 (removing item), remove the row from the UI
+        if (quantity === 0 && row) {
+            row.remove();
+            // Check if cart is empty
+            const cartItems = document.getElementById('cart-items');
+            if (cartItems && cartItems.children.length === 0) {
+                document.getElementById('empty-cart-message').style.display = 'block';
+                document.getElementById('cart-content').style.display = 'none';
+            }
+        }
+
+    } catch (error) {
+        console.error('Error updating cart item:', error);
+        
+        // Revert UI to previous state
+        if (input && input.value != prevQuantity) {
+            input.value = prevQuantity;
+        }
+        
+        if (row) {
+            const itemTotalEl = row.querySelector('.item-total');
+            if (itemTotalEl) itemTotalEl.textContent = formatCurrency(prevTotal);
+        }
+        
+        // Recalculate with previous values
+        updateAmount('cart-subtotal', prevSubtotal);
+        const gstAmount = (prevSubtotal * gstPercentage) / 100;
+        const discountAmount = (prevSubtotal * discountPercentage) / 100;
+        const total = Math.max(0, prevSubtotal + gstAmount - discountAmount);
+        
+        updateAmount('gst-amount', gstAmount);
+        updateAmount('discount-amount', -discountAmount);
+        updateAmount('cart-total', total);
+        
+        // Show error message to user
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            Failed to update cart: ${error.message || 'Unknown error occurred'}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.container.my-5')?.prepend(alertDiv);
+    } finally {
+        // Restore button state
+        if (button) {
+            button.disabled = false;
+            if (button.classList.contains('remove-item')) {
+                button.innerHTML = '<i class="fas fa-trash"></i>';
+            } else {
+                const isIncrease = button.dataset.action === 'increase';
+                button.innerHTML = `<i class="fas fa-${isIncrease ? 'plus' : 'minus'}"></i>`;
+            }
+        }
+    }
+}
+
+// Function to update cart count in navbar
+async function updateCartCount() {
+    try {
+        const response = await fetch('/api/cart');
+        if (response.ok) {
+            const cart = await response.json();
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartCountElements = document.querySelectorAll('.cart-count');
+            
+            cartCountElements.forEach(element => {
+                element.textContent = count;
+                element.style.display = count > 0 ? 'inline-block' : 'none';
+            });
+        }
+    } catch (error) {
+        console.error('Error updating cart count:', error);
+    }
+}
+
+// Checkout button is present in the UI but has no functionality
+// as per user request
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize cart display
+    updateCartDisplay();
+    
+    // Add event delegation for quantity changes and remove buttons
+    document.addEventListener('click', function(event) {
+        if (event.target.matches('.update-quantity')) {
+            const itemId = event.target.closest('tr').dataset.itemId;
+            const newQuantity = parseInt(event.target.value, 10);
+            if (newQuantity > 0) {
+                updateCartItem(itemId, newQuantity);
+            }
+        } else if (event.target.matches('.remove-item')) {
+            const itemId = event.target.closest('tr').dataset.itemId;
+            updateCartItem(itemId, 0);
+        }
+    });
+});
+</script>
+{% endblock %}

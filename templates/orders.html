@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - Restaurant Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">My Orders</h1>
+            
+            {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th class="text-end">Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                                <td>
+                                    <ul class="list-unstyled mb-0">
+                                        {% for item in order.items %}
+                                        <li>{{ item.quantity }}x {{ item.menu_item_name }} - ₹{{ "%.2f"|format(item.price * item.quantity) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                <td class="text-end">₹{{ "%.2f"|format(order.total_amount) }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if order.status == 'completed' %}bg-success
+                                        {% elif order.status == 'paid' %}bg-primary
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ order.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You haven't placed any orders yet. <a href="{{ url_for('index') }}">Browse our menu</a> to get started!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

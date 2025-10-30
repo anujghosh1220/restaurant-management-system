@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Menu - Restaurant Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1504674900247-087703934569?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 100px 0;
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .hero-section h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-section p.lead {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+        font-weight: 300;
+    }
+    
+    .category-btn {
+        background: transparent;
+        border: 2px solid #fff;
+        color: white;
+        padding: 8px 20px;
+        margin: 0 5px 10px;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .category-btn:hover, .category-btn.active {
+        background: #e67e22;
+        border-color: #e67e22;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .menu-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        height: 100%;
+    }
+    
+    .menu-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    }
+    
+    .menu-img {
+        height: 220px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .menu-card:hover .menu-img {
+        transform: scale(1.05);
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .card-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+    
+    .card-text {
+        color: #7f8c8d;
+        font-size: 0.95rem;
+        margin-bottom: 15px;
+        min-height: 48px;
+    }
+    
+    .price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #e67e22;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .price-container {
+        min-height: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .price-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .add-to-cart {
+        background: #e67e22;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        min-width: 140px; /* Fixed minimum width for all buttons */
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+    
+    .add-to-cart:hover {
+        background: #d35400;
+        transform: translateY(-2px);
+    }
+    
+    .no-items {
+        padding: 50px 0;
+        text-align: center;
+    }
+    
+    .no-items i {
+        font-size: 4rem;
+        color: #e67e22;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <h1>Delicious Food Delivered</h1>
+        <p class="lead">Order your favorite meals from our restaurant</p>
+        
+        <!-- Category Filter Buttons -->
+        <div class="d-flex flex-wrap justify-content-center">
+            <a href="{{ url_for('index') }}" 
+               class="category-btn {% if not current_category %}active{% endif %}">
+                All
+            </a>
+            {% for category in categories %}
+            <a href="{{ url_for('index', category=category) }}" 
+               class="category-btn {% if current_category == category %}active{% endif %}">
+                {{ category }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Menu Items -->
+<div class="container">
+    <div class="row">
+        {% for item in menu_items %}
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card menu-card">
+                {% if item.image_path %}
+                    <img src="{{ url_for('static', filename=item.image_path) }}" class="card-img-top menu-img" alt="{{ item.name }}">
+                {% else %}
+                    <div class="text-center py-5 bg-light">
+                        <i class="fas fa-utensils fa-5x text-muted"></i>
+                    </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ item.name }}</h5>
+                    <p class="card-text">{{ item.description|truncate(100) if item.description else 'No description available.' }}</p>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="price-container">
+                                {% if item.has_active_discount %}
+                                    <div class="price-row">
+                                        <span class="price text-decoration-line-through text-muted">₹{{ "%.2f"|format(item.original_price) }}</span>
+                                        <span class="price text-danger">₹{{ "%.2f"|format(item.price) }}</span>
+                                        <span class="badge bg-danger align-self-center">{{ "%.0f"|format(item.discount_percentage) }}% OFF</span>
+                                    </div>
+                                {% else %}
+                                    <div class="price-row">
+                                        <span class="price">₹{{ "%.2f"|format(item.price) }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-primary add-to-cart" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}" data-item-price="{{ item.price }}">
+                                <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                            </button>
+                        </div>
+                        {% if item.has_active_discount %}
+                        <small class="text-muted">Offer ends {{ item.discount_end.strftime('%b %d, %H:%M') }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="no-items">
+                <i class="fas fa-utensils"></i>
+                <h3>No menu items available</h3>
+                <p class="text-muted">Please check back later for our delicious offerings.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Function to show alert message
+function showAlert(message, type = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '1100';
+    alertDiv.role = 'alert';
+    const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+    alertDiv.innerHTML = `
+        <i class="fas fa-${icon} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove alert after 3 seconds
+    setTimeout(() => {
+        alertDiv.classList.add('fade');
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 150);
+    }, 3000);
+}
+
+// Function to update cart count in navbar
+async function updateCartCount() {
+    try {
+        const response = await fetch('/api/cart');
+        if (response.ok) {
+            const cart = await response.json();
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartCountElements = document.querySelectorAll('.cart-count');
+            
+            cartCountElements.forEach(element => {
+                element.textContent = count;
+                element.style.display = count > 0 ? 'inline-block' : 'none';
+            });
+        }
+    } catch (error) {
+        console.error('Error updating cart count:', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize cart count on page load
+    await updateCartCount();
+
+    // Add to cart functionality
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', async function() {
+            const itemId = this.dataset.itemId;
+            const itemName = this.dataset.itemName;
+            
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        menu_item_id: itemId,
+                        quantity: 1
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add item to cart');
+                }
+                
+                // Update cart count in navbar
+                await updateCartCount();
+                
+                // Show success message
+                showAlert(`${itemName} added to cart!`, 'success');
+                
+            } catch (error) {
+                console.error('Error adding item to cart:', error);
+                showAlert('Failed to add item to cart', 'danger');
+            }
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-cart-plus me-1"></i> Add to Cart';
+                this.classList.remove('btn-success');
+                this.classList.add('btn-primary');
+                this.disabled = false;
+            }, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

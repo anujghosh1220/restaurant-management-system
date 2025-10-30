@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}My Invoices - Restaurant Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>My Invoices</h1>
+        <a href="{{ url_for('user_orders') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Orders
+        </a>
+    </div>
+
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>#{{ order.id }}</td>
+                        <td>{{ order.updated_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td>
+                            {% for item in order.items %}
+                                {{ item.quantity }}x {{ item.menu_item_name }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td class="text-end">₹{{ "%.2f"|format(order.total_amount) }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('view_invoice', order_id=order.id) }}" 
+                               class="btn btn-sm btn-primary" 
+                               target="_blank">
+                                <i class="fas fa-file-invoice me-1"></i> View Invoice
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            You don't have any paid orders yet. Your invoices will appear here after you make a purchase.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

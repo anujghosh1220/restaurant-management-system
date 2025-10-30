@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Restaurant Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 100vh;
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+    
+    .auth-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .auth-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .auth-header {
+        background: #e67e22;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .auth-header h2 {
+        margin: 0;
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+    }
+    
+    .auth-body {
+        padding: 2rem;
+    }
+    
+    .form-control {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #e67e22;
+        box-shadow: 0 0 0 0.25rem rgba(230, 126, 34, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-auth {
+        background: #e67e22;
+        border: none;
+        padding: 12px 25px;
+        font-weight: 600;
+        border-radius: 50px;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-auth:hover {
+        background: #d35400;
+        transform: translateY(-2px);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #7f8c8d;
+    }
+    
+    .auth-footer a {
+        color: #e67e22;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .auth-footer a:hover {
+        color: #d35400;
+        text-decoration: underline;
+    }
+    
+    .back-home {
+        display: inline-block;
+        margin-top: 1rem;
+        color: #7f8c8d;
+    }
+    
+    .back-home:hover {
+        color: #e67e22;
+    }
+    
+    .form-text {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        margin-top: 0.25rem;
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+    }
+    
+    .input-group .form-control {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .required-field::after {
+        content: ' *';
+        color: #e74c3c;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-6">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h2>Create an Account</h2>
+                        <p class="mb-0">Join our foodie community today!</p>
+                    </div>
+                    
+                    <div class="auth-body">
+                        <form method="POST" action="{{ url_for('signup') }}" id="signupForm">
+                            <div class="row">
+                                <div class="col-md-12 mb-4">
+                                    <label for="username" class="form-label required-field">Username</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" class="form-control" 
+                                               id="username" name="username" required
+                                               value="{{ request.form.username if request.form.username }}"
+                                               placeholder="Choose a username">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-12 mb-4">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" class="form-control" 
+                                               id="email" name="email" 
+                                               value="{{ request.form.email if request.form.email }}"
+                                               placeholder="your@email.com">
+                                    </div>
+                                    <div class="form-text">We'll never share your email with anyone else.</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <label for="password" class="form-label required-field">Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                        <input type="password" class="form-control" 
+                                               id="password" name="password" required
+                                               placeholder="••••••••">
+                                    </div>
+                                    <div class="form-text">Must be at least 6 characters</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <label for="confirm_password" class="form-label required-field">Confirm Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
+                                        <input type="password" class="form-control" 
+                                               id="confirm_password" name="confirm_password" required
+                                               placeholder="••••••••">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mb-4">
+                                <button type="submit" class="btn btn-auth">
+                                    <i class="fas fa-user-plus me-2"></i> Create Account
+                                </button>
+                            </div>
+                            
+                            <div class="auth-footer">
+                                <p class="mb-2">
+                                    Already have an account? 
+                                    <a href="{{ url_for('login') }}">Log In</a>
+                                </p>
+                                <a href="{{ url_for('index') }}" class="back-home">
+                                    <i class="fas fa-arrow-left me-1"></i> Back to Home
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Client-side form validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate password length
+            if (password.value.length < 6) {
+                alert('Password must be at least 6 characters long');
+                isValid = false;
+            }
+            
+            // Check if passwords match
+            if (password.value !== confirmPassword.value) {
+                alert('Passwords do not match');
+                isValid = false;
+            }
+            
+            // Validate email format if provided
+            const email = document.getElementById('email');
+            if (email.value) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email.value)) {
+                    alert('Please enter a valid email address');
+                    isValid = false;
+                }
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}

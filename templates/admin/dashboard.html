@@ -1,0 +1,250 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}Dashboard{% endblock %}
+{% block admin_heading %}<i class="fas fa-utensils me-2"></i>Menu Items Management{% endblock %}
+
+{% block admin_actions %}
+    <a href="{{ url_for('new_item') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add New Item
+    </a>
+{% endblock %}
+
+{% block admin_content %}
+    <div class="card">
+        <div class="card-body">
+            {% if menu_items %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Discount</th>
+                                <th>Image</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in menu_items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            {% if item.image_path %}
+                                                <img src="{{ url_for('static', filename=item.image_path) }}" 
+                                                     alt="{{ item.name }}" 
+                                                     class="rounded" 
+                                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                                     style="width: 50px; height: 50px;">
+                                                    <i class="fas fa-utensils text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ item.name }}</h6>
+                                            <small class="text-muted">ID: {{ item.id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.has_active_discount %}
+                                        <span class="text-decoration-line-through text-muted me-2">₹{{ "%.2f"|format(item.original_price) }}</span>
+                                        <span class="text-danger fw-bold">₹{{ "%.2f"|format(item.price) }}</span>
+                                    {% else %}
+                                        ₹{{ "%.2f"|format(item.price) }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.has_active_discount %}
+                                        <span class="badge bg-success">
+                                            {{ "%.0f"|format(item.discount_percentage) }}% off
+                                        </span>
+                                        <small class="d-block text-muted">
+                                            Ends: {{ item.discount_end.strftime('%b %d, %H:%M') }}
+                                        </small>
+                                    {% else %}
+                                        <span class="text-muted">No discount</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.image_path %}
+                                        <button class="btn btn-sm btn-outline-secondary" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#imageModal{{ item.id }}">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </button>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted">No image</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" 
+                                                class="btn btn-sm {% if item.has_active_discount %}btn-warning{% else %}btn-outline-warning{% endif %}" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#discountModal{{ item.id }}" 
+                                                title="{% if item.has_active_discount %}Manage Discount{% else %}Add Discount{% endif %}">
+                                            <i class="fas fa-tag"></i>
+                                        </button>
+                                        <a href="{{ url_for('edit_item', item_id=item.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal{{ item.id }}" 
+                                                title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Image Preview Modal -->
+                            {% if item.image_path %}
+                            <div class="modal fade" id="imageModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{ item.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img src="{{ url_for('static', filename=item.image_path) }}" 
+                                                 alt="{{ item.name }}" 
+                                                 class="img-fluid rounded">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Delete Confirmation Modal -->
+                            <div class="modal fade" id="deleteModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-light">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                Confirm Delete
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete <strong>"{{ item.name }}"</strong>?</p>
+                                            <p class="mb-0 text-danger">This action cannot be undone.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                                <i class="fas fa-times me-1"></i> Cancel
+                                            </button>
+                                            <form action="{{ url_for('delete_item', item_id=item.id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-danger">
+                                                    <i class="fas fa-trash me-1"></i> Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-utensils fa-4x text-muted mb-3"></i>
+                        <h4>No menu items found</h4>
+                        <p class="text-muted">Get started by adding your first menu item</p>
+                    </div>
+                    <a href="{{ url_for('new_item') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add Your First Item
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+</div>
+
+{% for item in menu_items %}
+<!-- Discount Modal for {{ item.name }} -->
+<div class="modal fade" id="discountModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Discount for {{ item.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('apply_discount', item_id=item.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Current Price: ₹{{ "%.2f"|format(item.original_price) }}</label>
+                    </div>
+                    {% if item.has_active_discount %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Active discount: {{ "%.0f"|format(item.discount_percentage) }}% off
+                        <br>
+                        Ends: {{ item.discount_end.strftime('%b %d, %Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="discount_percentage" class="form-label">Discount Percentage</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="discount_percentage" name="discount_percentage" 
+                                   min="0" max="100" step="0.01" value="{{ item.discount_percentage if item.discount_percentage else '' }}">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="discount_days" class="form-label">Duration (days)</label>
+                        <input type="number" class="form-control" id="discount_days" name="discount_days" min="1" value="7">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    {% if item.has_active_discount %}
+                    <a href="{{ url_for('remove_discount', item_id=item.id) }}" class="btn btn-danger me-auto">
+                        <i class="fas fa-times me-1"></i> Remove Discount
+                    </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Apply Discount
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Initialize modals
+        var modals = document.querySelectorAll('.modal');
+        modals.forEach(function(modal) {
+            modal.addEventListener('shown.bs.modal', function () {
+                // Focus on the first input in the modal when it's shown
+                var input = this.querySelector('input');
+                if (input) input.focus();
+            });
+        });
+    });
+</script>
+{% endblock %}
